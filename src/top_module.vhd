@@ -19,6 +19,7 @@ architecture Behavioral of top_module is
     signal clk_25mhz : STD_LOGIC;
     signal clk_100khz : STD_LOGIC;
     signal external_clk : STD_LOGIC;
+    signal clk_led : STD_LOGIC;  -- MISSING SIGNAL DECLARATION - FIXED
     signal led_pulse : STD_LOGIC;
     signal pulse_count : STD_LOGIC_VECTOR(15 downto 0);
     
@@ -60,6 +61,20 @@ architecture Behavioral of top_module is
             an : out STD_LOGIC_VECTOR(3 downto 0)
         );
     end component;
+
+    component asynch_sync is  -- FIXED: Added full component declaration with generics
+        generic (
+            VENDOR              : string               := "XILINX";
+            RESET_ACTIVE_STATUS : std_logic            := '1';
+            SYNCH_FF_NUMBER     : natural range 2 to 5 := 3
+        );
+        port (
+            clk_25mhz   : in std_logic;
+            reset       : in std_logic;
+            clk_ext     : in std_logic;
+            clk_led     : out std_logic
+        );
+    end component;
     
 begin
     -- Reset logic (active high)
@@ -78,9 +93,22 @@ begin
             clk_100khz => clk_100khz
         );
     
+    cdc_inst: asynch_sync
+        generic map (
+            VENDOR => "XILINX",
+            RESET_ACTIVE_STATUS => '1',
+            SYNCH_FF_NUMBER => 3
+        )
+        port map (
+            clk_25mhz => clk_25mhz,
+            reset     => reset,
+            clk_ext   => external_clk,
+            clk_led   => clk_led
+        );
+    
     led_ctrl_inst: led_controller
         port map (
-            clk => external_clk,
+            clk => clk_led,
             reset => reset,
             switches => sw,
             led_out => led(0),
